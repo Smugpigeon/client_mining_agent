@@ -1,26 +1,40 @@
-// 后端调用。本地用 wx.request；生产建议改成 wx.cloud.callContainer（微信云托管，免合法域名）。
+// 后端调用：按 app.globalData.apiMode 走 wx.request(本地) 或 wx.cloud.callContainer(云托管)。
 const app = getApp();
 
 function request(method, path, data) {
+  const g = app.globalData;
   return new Promise((resolve, reject) => {
-    wx.request({
-      url: app.globalData.apiBase + path,
-      method: method,
-      data: data,
-      header: { "content-type": "application/json" },
-      success: (res) => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve(res.data);
-        } else {
-          reject(res);
-        }
-      },
-      fail: reject
-    });
+    const success = (res) => {
+      if (res.statusCode >= 200 && res.statusCode < 300) resolve(res.data);
+      else reject(res);
+    };
+    if (g.apiMode === "callContainer") {
+      wx.cloud.callContainer({
+        config: { env: g.cloudEnv },
+        path,
+        method,
+        header: { "X-WX-SERVICE": g.cloudService, "content-type": "application/json" },
+        data,
+        success,
+        fail: reject
+      });
+    } else {
+      wx.request({
+        url: g.apiBase + path,
+        method,
+        data,
+        header: { "content-type": "application/json" },
+        success,
+        fail: reject
+      });
+    }
   });
 }
 
 module.exports = {
   startJob: (params) => request("POST", "/jobs", params),
-  getJob: (jobId) => request("GET", "/jobs/" + jobId, {})
+  getJob: (jobId) => request("GET", "/jobs/" + jobId, {}),
+  // 整个 job 的服务端文件下载 URL（xlsx/csv）；用公网域名 + wx.downloadFile 取文件。
+  exportUrl: (jobId, fmt) =>
+    app.globalData.apiBase + "/jobs/" + jobId + "/export?fmt=" + (fmt || "xlsx")
 };

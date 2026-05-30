@@ -2,6 +2,7 @@
   <van-button type="primary" size="small" loading="{{loading}}" bind:click="onSearch">
     {{loading ? '搜索中…' : '开始搜索客户'}}
   </van-button>
+  <van-button wx:if="{{leads.length}}" size="small" plain bind:click="onExportAll">下载全部xlsx</van-button>
   <text class="count">共 {{leads.length}} 家 · 选中 {{selected.length}}</text>
 </view>
 
@@ -27,6 +28,6 @@
 <van-submit-bar
   wx:if="{{leads.length}}"
   button-text="批量导出 ({{selected.length}})"
-  tip="选中行复制为 CSV"
+  tip="选中行导出为 CSV 文件"
   bind:submit="onBatchExport"
 />
