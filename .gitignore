@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+
+# runtime artifacts — never commit scraped data / secrets
+cache/
+data/output/
+output/
+.env
+*.xlsx
+
+# Mini Program frontend (npm)
+node_modules/
+miniprogram/miniprogram_npm/

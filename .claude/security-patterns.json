@@ -1,0 +1,29 @@
+{
+  "patterns": [
+    {
+      "rule_name": "tls_verify_disabled",
+      "substrings": ["verify=False"],
+      "reminder": "TLS verification disabled — remove verify=False."
+    },
+    {
+      "rule_name": "subprocess_shell_true",
+      "substrings": ["shell=True"],
+      "reminder": "shell=True invites command injection on scraped input — pass an argv list."
+    },
+    {
+      "rule_name": "unsafe_deserialize",
+      "regex": "pickle\\.loads|yaml\\.load\\(",
+      "reminder": "Unsafe deserialization — use json or yaml.safe_load; never on fetched data."
+    },
+    {
+      "rule_name": "hardcoded_secret",
+      "substrings": ["sk_live_", "AKIA"],
+      "reminder": "Looks like a hardcoded credential — load from env / secret manager."
+    },
+    {
+      "rule_name": "http_no_timeout",
+      "regex": "(requests|httpx)\\.(get|post|put|delete|head)\\((?![^)]*timeout)",
+      "reminder": "HTTP call without an explicit timeout — pass timeout=..."
+    }
+  ]
+}

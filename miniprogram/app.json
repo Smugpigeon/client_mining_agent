@@ -1,0 +1,10 @@
+{
+  "pages": ["pages/leads/leads"],
+  "window": {
+    "navigationBarTitleText": "客源搜索",
+    "navigationBarBackgroundColor": "#6B2C5F",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f7f7f7"
+  },
+  "style": "v2"
+}

@@ -1,0 +1,21 @@
+[importlinter]
+root_package = leadfinder
+
+[importlinter:contract:layers]
+name = Inward dependency direction (domain at the core)
+type = layers
+layers =
+    (leadfinder.api)
+    (leadfinder.cli)
+    (leadfinder.pipeline)
+    leadfinder.stages
+    leadfinder.sources
+    leadfinder.infra
+    leadfinder.domain
+
+[importlinter:contract:independence]
+name = Stages and sources never import each other
+type = independence
+modules =
+    leadfinder.stages
+    leadfinder.sources

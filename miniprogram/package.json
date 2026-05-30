@@ -1,0 +1,7 @@
+{
+  "name": "leadfinder-miniprogram",
+  "version": "0.1.0",
+  "dependencies": {
+    "@vant/weapp": "^1.11.6"
+  }
+}

@@ -1,0 +1,32 @@
+<view class="toolbar">
+  <van-button type="primary" size="small" loading="{{loading}}" bind:click="onSearch">
+    {{loading ? '搜索中…' : '开始搜索客户'}}
+  </van-button>
+  <text class="count">共 {{leads.length}} 家 · 选中 {{selected.length}}</text>
+</view>
+
+<van-checkbox-group value="{{selected}}" bind:change="onSelectChange">
+  <view class="row" wx:for="{{leads}}" wx:key="index">
+    <van-checkbox name="{{index}}">
+      <view class="card">
+        <view class="line1">
+          <text class="name">{{item.company_name}}</text>
+          <van-tag wx:if="{{item.priority === 'high'}}" type="danger">高</van-tag>
+          <van-tag wx:elif="{{item.priority === 'medium'}}" type="warning">中</van-tag>
+          <van-tag wx:else type="default">低</van-tag>
+        </view>
+        <view class="line2">{{item.country}} · {{item.lead_type}}</view>
+        <view class="line3">{{item.email || '无公开邮箱'}}</view>
+      </view>
+    </van-checkbox>
+  </view>
+</van-checkbox-group>
+
+<van-empty wx:if="{{!leads.length && !loading}}" description="还没有客户，点上方按钮搜索" />
+
+<van-submit-bar
+  wx:if="{{leads.length}}"
+  button-text="批量导出 ({{selected.length}})"
+  tip="选中行复制为 CSV"
+  bind:submit="onBatchExport"
+/>
