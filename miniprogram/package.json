@@ -2,6 +2,7 @@
   "name": "leadfinder-miniprogram",
   "version": "0.1.0",
   "dependencies": {
-    "@vant/weapp": "^1.11.6"
+    "@vant/weapp": "^1.11.6",
+    "tdesign-miniprogram": "^1.15.0"
   }
 }

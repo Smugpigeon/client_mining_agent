@@ -1,0 +1,13 @@
+<view class="tabbar">
+  <view
+    class="tab {{active === index ? 'on' : ''}}"
+    wx:for="{{list}}"
+    wx:key="path"
+    data-index="{{index}}"
+    data-path="{{item.path}}"
+    bind:tap="onTap"
+  >
+    <image class="tab-ico" src="{{active === index ? item.iconOn : item.icon}}" mode="aspectFit" />
+    <view class="tab-txt">{{item.text}}</view>
+  </view>
+</view>

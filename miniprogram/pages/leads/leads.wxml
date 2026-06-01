@@ -1,33 +1,62 @@
-<view class="toolbar">
-  <van-button type="primary" size="small" loading="{{loading}}" bind:click="onSearch">
-    {{loading ? '搜索中…' : '开始搜索客户'}}
-  </van-button>
-  <van-button wx:if="{{leads.length}}" size="small" plain bind:click="onExportAll">下载全部xlsx</van-button>
-  <text class="count">共 {{leads.length}} 家 · 选中 {{selected.length}}</text>
-</view>
-
-<van-checkbox-group value="{{selected}}" bind:change="onSelectChange">
-  <view class="row" wx:for="{{leads}}" wx:key="index">
-    <van-checkbox name="{{index}}">
-      <view class="card">
-        <view class="line1">
-          <text class="name">{{item.company_name}}</text>
-          <van-tag wx:if="{{item.priority === 'high'}}" type="danger">高</van-tag>
-          <van-tag wx:elif="{{item.priority === 'medium'}}" type="warning">中</van-tag>
-          <van-tag wx:else type="default">低</van-tag>
-        </view>
-        <view class="line2">{{item.country}} · {{item.lead_type}}</view>
-        <view class="line3">{{item.email || '无公开邮箱'}}</view>
+<view class="page">
+  <view class="banner">
+    <canvas type="2d" id="tex" class="banner-tex"></canvas>
+    <view class="brand">
+      <image class="logo" src="/assets/logo.svg" mode="aspectFit" />
+      <view class="brand-txt">
+        <view class="brand-name">客源搜索</view>
+        <view class="brand-sub">海外护肤买家 · 挖掘与触达</view>
       </view>
-    </van-checkbox>
+      <view class="banner-btn {{loading ? 'busy' : ''}}" bind:tap="onSearch">
+        {{loading ? '载入中…' : '＋ 找新客户'}}
+      </view>
+    </view>
   </view>
-</van-checkbox-group>
+  <view class="meta" wx:if="{{all.length}}">共 {{all.length}} 家 · 已选 {{selectedCount}}</view>
 
-<van-empty wx:if="{{!leads.length && !loading}}" description="还没有客户，点上方按钮搜索" />
+  <view class="toolbar" wx:if="{{all.length}}">
+    <view class="chip" bind:tap="onToggleAll">{{allViewSelected ? '取消全选' : '全选'}}</view>
+    <view class="chip {{selectedCount ? 'primary' : 'mute'}}" bind:tap="onSaveSelected">
+      {{allSelectedSaved ? '取消保存' : '保存所选'}}
+    </view>
+    <view class="chip gold" bind:tap="onSaveHighValue">★ 保存高价值</view>
+  </view>
+  <view class="go-hint" wx:if="{{selectedCount}}">已选 {{selectedCount}} 家 · 去底部「群发」发邮件 →</view>
 
-<van-submit-bar
-  wx:if="{{leads.length}}"
-  button-text="批量导出 ({{selected.length}})"
-  tip="选中行导出为 CSV 文件"
-  bind:submit="onBatchExport"
-/>
+  <t-tabs wx:if="{{all.length}}" value="{{filter}}" bind:change="onFilter">
+    <t-tab-panel label="全部" value="all" />
+    <t-tab-panel label="已保存" value="saved" />
+    <t-tab-panel label="高优先" value="high" />
+    <t-tab-panel label="有邮箱" value="email" />
+  </t-tabs>
+
+  <view class="list">
+    <view
+      class="card {{item.sel ? 'sel' : ''}} {{item.isHigh ? 'high' : ''}}"
+      wx:for="{{view}}"
+      wx:key="i"
+      data-i="{{item.i}}"
+      bind:tap="onToggle"
+    >
+      <view class="pick {{item.sel ? 'on' : ''}}">{{item.sel ? '✓' : ''}}</view>
+      <view class="body">
+        <view class="row1">
+          <text class="name">{{item.name}}</text>
+          <t-tag wx:if="{{item.isHigh}}" theme="primary" variant="light" size="small">高</t-tag>
+          <t-tag wx:elif="{{item.priCls === 'pri-mid'}}" theme="warning" variant="light" size="small">中</t-tag>
+          <t-tag wx:else theme="default" variant="light" size="small">低</t-tag>
+          <text wx:if="{{item.saved}}" class="saved-flag">★ 已保存</text>
+        </view>
+        <view class="sub">{{item.country}} · {{item.type}}</view>
+        <view class="contact {{item.hasEmail ? '' : 'muted'}}">
+          {{item.hasEmail ? item.email : '暂无公开邮箱'}}
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="loading-hint" wx:if="{{loading && !all.length}}">正在载入客户清单…</view>
+  <t-empty wx:if="{{!all.length && !loading}}" description="还没有客户，点右上角「找新客户」用对话搜索" />
+  <t-empty wx:if="{{all.length && !view.length}}" description="该筛选下暂无客户" />
+
+</view>

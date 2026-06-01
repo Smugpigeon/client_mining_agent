@@ -4,7 +4,14 @@ from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
-from leadfinder.domain.models import Lead, RawRecord, SearchParams, Verification
+from leadfinder.domain.models import (
+    Lead,
+    OutboundEmail,
+    RawRecord,
+    SearchParams,
+    SendResult,
+    Verification,
+)
 
 
 @runtime_checkable
@@ -35,3 +42,10 @@ class Writer(Protocol):
     """Persist the ranked leads to a file; returns the written path."""
 
     def write(self, leads: Sequence[Lead]) -> Path: ...
+
+
+@runtime_checkable
+class EmailSender(Protocol):
+    """Send one email. Never raises on a single failure — returns a SendResult."""
+
+    def send(self, email: OutboundEmail) -> SendResult: ...

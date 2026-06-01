@@ -1,0 +1,110 @@
+.page {
+  padding: 24rpx 28rpx calc(140rpx + env(safe-area-inset-bottom));
+}
+.head {
+  display: flex;
+  align-items: center;
+  padding: 8rpx 4rpx 20rpx;
+}
+.mini-logo {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 12rpx;
+  margin-right: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+.title {
+  flex: 1;
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  letter-spacing: 1rpx;
+}
+.add-btn {
+  background: #1b3a5f;
+  color: #fff;
+  font-size: 26rpx;
+  padding: 12rpx 26rpx;
+  border-radius: 40rpx;
+}
+.empty-wrap {
+  margin-top: 160rpx;
+}
+
+/* 产品卡片 */
+.pcard {
+  background: #fff;
+  border-radius: 18rpx;
+  padding: 24rpx 26rpx;
+  margin-bottom: 18rpx;
+  box-shadow: 0 2rpx 14rpx rgba(0, 0, 0, 0.04);
+  display: flex;
+  justify-content: space-between;
+}
+.pcard-main {
+  flex: 1;
+  margin-right: 18rpx;
+}
+.pname {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.pprice {
+  font-size: 24rpx;
+  color: #b8860b;
+  margin-top: 6rpx;
+}
+.pintro {
+  font-size: 25rpx;
+  color: #6a655f;
+  margin-top: 10rpx;
+  line-height: 1.5;
+}
+.ptags {
+  margin-top: 12rpx;
+}
+.ptag {
+  display: inline-block;
+  font-size: 22rpx;
+  color: #1b3a5f;
+  background: #e9eef6;
+  border-radius: 8rpx;
+  padding: 4rpx 14rpx;
+  margin: 0 12rpx 8rpx 0;
+}
+.pcard-ops {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18rpx;
+}
+.op {
+  font-size: 26rpx;
+  color: #1b3a5f;
+  text-align: center;
+}
+.op.del {
+  color: #d54941;
+}
+
+/* 表单 */
+.card {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 24rpx 28rpx 28rpx;
+  box-shadow: 0 2rpx 14rpx rgba(0, 0, 0, 0.04);
+}
+.field-label {
+  font-size: 25rpx;
+  color: #8a8580;
+  margin: 22rpx 0 8rpx;
+}
+.btn-row {
+  display: flex;
+  gap: 18rpx;
+  margin-top: 24rpx;
+}
+.btn-row > t-button {
+  flex: 1;
+}

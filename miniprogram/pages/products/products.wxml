@@ -1,0 +1,60 @@
+<view class="page">
+  <view class="head">
+    <image class="mini-logo" src="/assets/logo.svg" mode="aspectFit" />
+    <view class="title">产品库</view>
+    <view wx:if="{{!showForm}}" class="add-btn" bind:tap="onAdd">+ 新增</view>
+  </view>
+
+  <!-- 列表 -->
+  <block wx:if="{{!showForm}}">
+    <view wx:if="{{!list.length}}" class="empty-wrap">
+      <t-empty description="还没有产品，点右上「+ 新增」添加" />
+    </view>
+
+    <view class="pcard" wx:for="{{list}}" wx:key="id">
+      <view class="pcard-main">
+        <view class="pname">{{item.name}}</view>
+        <view wx:if="{{item.price}}" class="pprice">{{item.price}}</view>
+        <view wx:if="{{item.intro}}" class="pintro">{{item.intro}}</view>
+        <view wx:if="{{item.highlights.length}}" class="ptags">
+          <text wx:for="{{item.highlights}}" wx:for-item="h" wx:key="*this" class="ptag">{{h}}</text>
+        </view>
+      </view>
+      <view class="pcard-ops">
+        <view class="op" data-i="{{index}}" bind:tap="onEdit">编辑</view>
+        <view class="op del" data-i="{{index}}" bind:tap="onDelete">删除</view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 新增 / 编辑表单 -->
+  <block wx:if="{{showForm}}">
+    <view class="card">
+      <view class="field-label">产品名称</view>
+      <t-input placeholder="如：玻尿酸保湿面膜" value="{{form.name}}" bind:change="onName" />
+      <view class="field-label">价格 / 报价（可选）</view>
+      <t-input placeholder="如：US$0.9 / 片，FOB 深圳" value="{{form.price}}" bind:change="onPrice" />
+      <view class="field-label">产品介绍</view>
+      <t-textarea
+        placeholder="成分、功效、适用人群、包装规格、起订量…"
+        value="{{form.intro}}"
+        bind:change="onIntro"
+        autosize
+        maxlength="600"
+      />
+      <view class="field-label">核心卖点（每行一个）</view>
+      <t-textarea
+        placeholder="医用级原料 / 敏感肌可用 / 支持 OEM·ODM 贴牌"
+        value="{{form.highlightsText}}"
+        bind:change="onHighlights"
+        autosize
+        maxlength="300"
+      />
+    </view>
+
+    <view class="btn-row">
+      <t-button block theme="default" bind:tap="onCancel">取消</t-button>
+      <t-button block theme="primary" bind:tap="onSave">保存</t-button>
+    </view>
+  </block>
+</view>

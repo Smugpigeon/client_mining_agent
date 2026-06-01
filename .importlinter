@@ -8,6 +8,7 @@ layers =
     (leadfinder.api)
     (leadfinder.cli)
     (leadfinder.pipeline)
+    (leadfinder.outreach)
     leadfinder.stages
     leadfinder.sources
     leadfinder.infra

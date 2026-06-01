@@ -61,3 +61,45 @@ class Lead(BaseModel):
     score: int = 0
     priority: Priority = Priority.LOW
     schema_version: int = SCHEMA_VERSION
+
+
+class Recipient(BaseModel):
+    """One bulk-email recipient, with merge fields for personalization."""
+
+    email: str
+    company_name: str = ""
+    country: str = ""
+
+
+class ProductBlock(BaseModel):
+    """One product's marketing block, included in outreach emails."""
+
+    name: str
+    intro: str = ""
+    highlights: list[str] = []
+    price: str = ""
+
+
+class OutboundEmail(BaseModel):
+    """A rendered, ready-to-send email (plain text + optional HTML)."""
+
+    to: str
+    subject: str
+    body: str
+    html: str = ""
+
+
+class SendResult(BaseModel):
+    """Outcome of one send (or a dry-run preview)."""
+
+    to: str
+    ok: bool
+    error: str | None = None
+    preview: str | None = None
+
+
+class ChatMessage(BaseModel):
+    """One turn in the LLM chat dialog (role: user | assistant)."""
+
+    role: str
+    content: str

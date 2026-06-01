@@ -1,0 +1,49 @@
+<view class="page">
+  <scroll-view class="msgs" scroll-y scroll-into-view="{{scrollId}}" scroll-with-animation>
+    <view class="intro" wx:if="{{!messages.length}}">
+      <image class="intro-logo" src="/assets/logo.svg" mode="aspectFit" />
+      <view class="intro-title">客户开发助手</view>
+      <view class="intro-sub">说说你想找的买家，我来帮你找并整理成客户卡片</view>
+      <view class="chip-row">
+        <view class="eg" data-t="帮我找尼日利亚的护肤品进口商" bindtap="onEg">尼日利亚 · 护肤品进口商</view>
+        <view class="eg" data-t="迪拜有哪些化妆品经销商？" bindtap="onEg">迪拜 · 化妆品经销商</view>
+        <view class="eg" data-t="帮我找肯尼亚做面膜批发的买家" bindtap="onEg">肯尼亚 · 面膜批发买家</view>
+      </view>
+    </view>
+
+    <view
+      wx:for="{{messages}}"
+      wx:key="id"
+      wx:for-index="m"
+      id="msg-{{m}}"
+      class="turn {{item.role}}"
+    >
+      <view class="bubble {{item.role}}">{{item.content}}</view>
+      <view wx:if="{{item.leads.length}}" class="leadbox">
+        <view class="leadcard" wx:for="{{item.leads}}" wx:for-item="ld" wx:for-index="i" wx:key="i">
+          <view class="ld-main">
+            <view class="ld-name">{{ld.company_name}}</view>
+            <view class="ld-sub">{{ld.country || '—'}} · {{ld.typeCn}}</view>
+            <view wx:if="{{ld.website}}" class="ld-web">{{ld.website}}</view>
+          </view>
+          <view class="ld-save" data-m="{{m}}" data-i="{{i}}" bindtap="onSaveLead">＋ 存客源</view>
+        </view>
+        <view class="saveall" data-m="{{m}}" bindtap="onSaveAll">全部存入客源（{{item.leads.length}}）</view>
+      </view>
+    </view>
+
+    <view wx:if="{{sending}}" class="typing">助手正在思考…</view>
+  </scroll-view>
+
+  <view class="inputbar">
+    <input
+      class="ipt"
+      value="{{input}}"
+      bindinput="onInput"
+      bindconfirm="onSend"
+      confirm-type="send"
+      placeholder="想找什么样的买家？"
+    />
+    <view class="send {{(input && !sending) ? '' : 'off'}}" bindtap="onSend">发送</view>
+  </view>
+</view>

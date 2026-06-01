@@ -1,0 +1,70 @@
+<view class="page">
+  <view class="head">
+    <image class="mini-logo" src="/assets/logo.svg" mode="aspectFit" />
+    <view class="title">群发邮件</view>
+  </view>
+
+  <view wx:if="{{!count}}" class="empty-wrap">
+    <t-empty description="先到「客源」页勾选客户，再回来群发" />
+  </view>
+
+  <block wx:if="{{count}}">
+    <view class="hint">
+      已选 <text class="num">{{count}}</text> 家 · 其中 <text class="num">{{withEmail}}</text> 个有邮箱可发
+    </view>
+
+    <view class="card">
+      <view class="field-label">主题</view>
+      <t-input placeholder="你好 {{company_name}}" value="{{subject}}" bind:change="onSubject" />
+      <view class="field-label">正文（可用 {{company_name}}、{{country}} 占位）</view>
+      <t-textarea
+        placeholder="我们是中国护肤品出口商，想与{{company_name}}合作…"
+        value="{{body}}"
+        bind:change="onBody"
+        autosize
+        maxlength="600"
+      />
+      <view class="field-label">落款名</view>
+      <t-input placeholder="你的名字 / 公司" value="{{fromName}}" bind:change="onFrom" />
+    </view>
+
+    <view class="card prod-card" wx:if="{{products.length}}">
+      <view class="field-label">附带产品介绍（勾选后自动排版进邮件）</view>
+      <view
+        class="prow {{item.sel ? 'on' : ''}}"
+        wx:for="{{products}}"
+        wx:key="id"
+        data-i="{{index}}"
+        bind:tap="onToggleProduct"
+      >
+        <view class="prow-name">{{item.name}}</view>
+        <view class="check {{item.sel ? 'on' : ''}}">{{item.sel ? '✓' : ''}}</view>
+      </view>
+    </view>
+    <view class="prod-tip" wx:else>想随邮件附产品介绍？去底部「产品」页添加，这里就能勾选。</view>
+
+    <view class="tip">先「预览」确认效果再「发送」。系统会自动去重、跳过无邮箱、加退订落款。真发需后端配好 SMTP。</view>
+
+    <view class="btn-row">
+      <t-button block theme="default" loading="{{busy && dry}}" bind:tap="onPreview">预览</t-button>
+      <t-button block theme="primary" loading="{{busy && !dry}}" bind:tap="onSend">发送 {{withEmail}} 封</t-button>
+    </view>
+
+    <view class="export-row">
+      <t-button size="small" variant="text" bind:tap="onExportCsv">导出所选 CSV</t-button>
+      <t-button size="small" variant="text" bind:tap="onExportAll">下载全部 xlsx</t-button>
+    </view>
+
+    <view class="results" wx:if="{{results.length}}">
+      <view class="results-title">{{dry ? '预览' : '发送结果'}}（{{results.length}}）</view>
+      <view class="rcard" wx:for="{{results}}" wx:key="index">
+        <view class="rtop">
+          <text class="rto">{{item.to}}</text>
+          <text class="badge {{item.ok ? 'ok' : 'bad'}}">{{item.ok ? '✓' : '✗'}}</text>
+        </view>
+        <view wx:if="{{item.preview}}" class="rprev">{{item.preview}}</view>
+        <view wx:if="{{item.error}}" class="rerr">{{item.error}}</view>
+      </view>
+    </view>
+  </block>
+</view>

@@ -8,6 +8,10 @@ COPY pyproject.toml ./
 COPY src ./src
 RUN pip install --no-cache-dir ".[api]"
 
+# 预置快照（可选）：snapshot/leads.json 存在时，API 直接返回它而不现抓 —— 云端冷容器秒出、稳定。
+COPY snapshot ./snapshot
+ENV LEADFINDER_SNAPSHOT=/app/snapshot/leads.json
+
 # 微信云托管 / 任意容器：监听 $PORT（默认 8080），绑定 0.0.0.0。
 ENV PORT=8080
 EXPOSE 8080

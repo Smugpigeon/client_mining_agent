@@ -1,10 +1,10 @@
 {
+  "navigationBarTitleText": "客源清单",
   "usingComponents": {
-    "van-button": "@vant/weapp/button/index",
-    "van-checkbox": "@vant/weapp/checkbox/index",
-    "van-checkbox-group": "@vant/weapp/checkbox-group/index",
-    "van-tag": "@vant/weapp/tag/index",
-    "van-submit-bar": "@vant/weapp/submit-bar/index",
-    "van-empty": "@vant/weapp/empty/index"
+    "t-button": "tdesign-miniprogram/button/button",
+    "t-tag": "tdesign-miniprogram/tag/tag",
+    "t-tabs": "tdesign-miniprogram/tabs/tabs",
+    "t-tab-panel": "tdesign-miniprogram/tab-panel/tab-panel",
+    "t-empty": "tdesign-miniprogram/empty/empty"
   }
 }

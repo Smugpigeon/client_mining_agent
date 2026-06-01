@@ -1,12 +1,105 @@
 const api = require("../../utils/api");
+const catalog = require("../../utils/catalog");
+const app = getApp();
+
+// 国家/类型/优先级 中文映射(治"中英混排")
+const COUNTRY = {
+  "United Arab Emirates": "阿联酋", "Saudi Arabia": "沙特", "Nigeria": "尼日利亚",
+  "India": "印度", "Pakistan": "巴基斯坦", "United States of America": "美国",
+  "France": "法国", "Türkiye": "土耳其", "China": "中国", "Kenya": "肯尼亚",
+  "Uganda": "乌干达", "Tanzania": "坦桑尼亚", "Angola": "安哥拉", "Mauritius": "毛里求斯",
+  "Ghana": "加纳", "Egypt": "埃及", "Morocco": "摩洛哥", "South Africa": "南非",
+  "United Kingdom": "英国", "Italy": "意大利", "Lebanon": "黎巴嫩", "Cameroon": "喀麦隆",
+  "Syria": "叙利亚", "Ukraine": "乌克兰", "Qatar": "卡塔尔", "Thailand": "泰国"
+};
+const TYPE = {
+  distributor: "经销/进口商", retailer: "零售商", manufacturer: "品牌/制造商", unknown: "类型待定"
+};
+const PRI = {
+  high: { label: "高", cls: "pri-high" },
+  medium: { label: "中", cls: "pri-mid" },
+  low: { label: "低", cls: "pri-low" }
+};
+
+function decorate(lead, i) {
+  const p = PRI[lead.priority] || PRI.low;
+  return {
+    i: i,
+    raw: lead,
+    name: lead.company_name,
+    country: COUNTRY[lead.country] || lead.country || "—",
+    type: TYPE[lead.lead_type] || "类型待定",
+    email: lead.email || "",
+    hasEmail: !!lead.email,
+    priLabel: p.label,
+    priCls: p.cls,
+    isHigh: lead.priority === "high",
+    saved: !!lead.saved,
+    sel: false
+  };
+}
 
 Page({
-  data: { leads: [], selected: [], loading: false, jobId: "" },
+  data: {
+    all: [], view: [], loading: false, filter: "all",
+    selectedCount: 0, allSelectedSaved: false, allViewSelected: false
+  },
 
+  onShow() {
+    if (typeof this.getTabBar === "function" && this.getTabBar()) {
+      this.getTabBar().setData({ active: 0 });
+    }
+    // 别处(对话页)新增了客户 → 刷新清单,保留已选
+    const cat = catalog.load();
+    if (cat.length !== this.data.all.length) {
+      this._setLeads(cat, true);
+    }
+  },
+
+  onLoad() {
+    const cat = catalog.load();
+    if (cat.length) {
+      this._setLeads(cat, false); // 秒开:直接读本地清单
+    } else {
+      this._seeding = true; // 首次为空:静默拉一次后端铺底
+      this._runJob();
+    }
+  },
+
+  onReady() {
+    // canvas 画一层点阵纹理铺在横幅上(贴图)
+    wx.createSelectorQuery()
+      .select("#tex")
+      .fields({ node: true, size: true })
+      .exec((res) => {
+        const item = res && res[0];
+        if (!item || !item.node) return;
+        const canvas = item.node;
+        const ctx = canvas.getContext("2d");
+        const dpr = (wx.getWindowInfo && wx.getWindowInfo().pixelRatio) || 2;
+        canvas.width = item.width * dpr;
+        canvas.height = item.height * dpr;
+        ctx.scale(dpr, dpr);
+        ctx.fillStyle = "rgba(255,255,255,0.10)";
+        for (let y = 16; y < item.height; y += 28) {
+          for (let x = 16; x < item.width; x += 28) {
+            ctx.beginPath();
+            ctx.arc(x, y, 2.2, 0, 6.2832);
+            ctx.fill();
+          }
+        }
+      });
+  },
+
+  // 「找新客户」→ 去「对话」页用自然语言搜索
   onSearch() {
-    this.setData({ loading: true, leads: [], selected: [], jobId: "" });
+    wx.switchTab({ url: "/pages/chat/chat" });
+  },
+
+  _runJob() {
+    this.setData({ loading: true });
     api
-      .startJob({ source: "beauty_west_africa", limit: 20 })
+      .startJob({ source: "beauty_west_africa" })
       .then((job) => this._poll(job.job_id))
       .catch(() => this._fail("启动失败，检查后端"));
   },
@@ -16,7 +109,10 @@ Page({
       .getJob(jobId)
       .then((job) => {
         if (job.status === "done") {
-          this.setData({ leads: job.leads, jobId: jobId, loading: false });
+          catalog.addLeads(job.leads || []);
+          this._setLeads(catalog.load(), true);
+          this._seeding = false;
+          this.setData({ loading: false });
         } else if (job.status === "error") {
           this._fail("搜索出错");
         } else {
@@ -26,70 +122,107 @@ Page({
       .catch(() => this._fail("查询失败"));
   },
 
+  _setLeads(raws, preserveSelection) {
+    const selectedKeys = preserveSelection
+      ? new Set(this.data.all.filter((x) => x.sel).map((x) => catalog.keyOf(x.raw)))
+      : new Set();
+    const all = raws.map((lead, i) => {
+      const d = decorate(lead, i);
+      d.sel = selectedKeys.has(catalog.keyOf(lead));
+      return d;
+    });
+    this._refreshList(all);
+  },
+
+  // 统一刷新:重算 view / 已选数 / 各按钮态,并把选中态共享给「群发」页
+  _refreshList(all) {
+    app.globalData.leads = all;
+    const view = this._viewFor(all, this.data.filter);
+    const count = all.reduce((n, x) => n + (x.sel ? 1 : 0), 0);
+    this.setData({
+      all: all,
+      view: view,
+      loading: false,
+      selectedCount: count,
+      allSelectedSaved: this._allSelSaved(all),
+      allViewSelected: view.length > 0 && view.every((x) => x.sel)
+    });
+  },
+
+  _viewFor(all, filter) {
+    if (filter === "saved") return all.filter((x) => x.saved);
+    if (filter === "high") return all.filter((x) => x.isHigh);
+    if (filter === "email") return all.filter((x) => x.hasEmail);
+    return all;
+  },
+
+  _allSelSaved(all) {
+    const sel = all.filter((x) => x.sel);
+    return sel.length > 0 && sel.every((x) => x.saved);
+  },
+
   _fail(msg) {
+    const wasSeeding = this._seeding;
+    this._seeding = false;
     this.setData({ loading: false });
-    wx.showToast({ title: msg, icon: "none" });
+    if (!wasSeeding) wx.showToast({ title: msg, icon: "none" }); // 铺底失败就静默显示空态
   },
 
-  onSelectChange(e) {
-    this.setData({ selected: e.detail });
+  onFilter(e) {
+    this.setData({ filter: e.detail.value });
+    this._refreshList(this.data.all);
   },
 
-  // 批量导出「勾选行」为 CSV 文件（客户端，两种模式都可用，尊重勾选）。
-  onBatchExport() {
-    const rows = this.data.selected.map((i) => this.data.leads[i]);
-    if (!rows.length) {
+  onToggle(e) {
+    const i = e.currentTarget.dataset.i;
+    const all = this.data.all;
+    all[i].sel = !all[i].sel;
+    this._refreshList(all);
+  },
+
+  // 全选 / 取消全选(作用于当前筛选下可见的客户)
+  onToggleAll() {
+    const all = this.data.all;
+    const view = this._viewFor(all, this.data.filter);
+    const target = !(view.length > 0 && view.every((x) => x.sel));
+    view.forEach((x) => {
+      x.sel = target;
+    });
+    this._refreshList(all);
+  },
+
+  // 保存 / 取消保存所选
+  onSaveSelected() {
+    const all = this.data.all;
+    const selected = all.filter((x) => x.sel);
+    if (!selected.length) {
       wx.showToast({ title: "请先勾选客户", icon: "none" });
       return;
     }
-    const esc = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
-    const header = ["公司名称", "国家", "客户类型", "邮箱", "电话", "网站", "优先级"];
-    const lines = [header.join(",")].concat(
-      rows.map((r) =>
-        [r.company_name, r.country, r.lead_type, r.email, r.phone, r.website, r.priority]
-          .map(esc)
-          .join(",")
-      )
-    );
-    const filePath = `${wx.env.USER_DATA_PATH}/leads_${Date.now()}.csv`;
-    wx.getFileSystemManager().writeFile({
-      filePath: filePath,
-      data: "﻿" + lines.join("\n"), // BOM，Excel 正确识别中文
-      encoding: "utf-8",
-      success: () =>
-        wx.openDocument({ filePath: filePath, showMenu: true, fail: () => this._clip(lines) }),
-      fail: () => this._clip(lines)
+    const makeSaved = !selected.every((x) => x.saved);
+    selected.forEach((x) => {
+      x.saved = makeSaved;
+      x.raw.saved = makeSaved;
     });
+    catalog.save(all.map((x) => x.raw));
+    this._refreshList(all);
+    wx.showToast({ title: makeSaved ? `已保存 ${selected.length} 家` : "已取消保存", icon: "success" });
   },
 
-  _clip(lines) {
-    wx.setClipboardData({
-      data: lines.join("\n"),
-      success: () => wx.showToast({ title: "已复制到剪贴板", icon: "success" })
-    });
-  },
-
-  // 下载「整个 job」的服务端 xlsx（走后端 /export）。
-  onExportAll() {
-    if (!this.data.jobId) {
-      wx.showToast({ title: "请先搜索", icon: "none" });
+  // 一键保存所有高价值(高优先级)客户
+  onSaveHighValue() {
+    const all = this.data.all;
+    const high = all.filter((x) => x.isHigh);
+    if (!high.length) {
+      wx.showToast({ title: "暂无高价值客户", icon: "none" });
       return;
     }
-    wx.showLoading({ title: "生成中…" });
-    wx.downloadFile({
-      url: api.exportUrl(this.data.jobId, "xlsx"),
-      success: (res) => {
-        wx.hideLoading();
-        if (res.statusCode === 200) {
-          wx.openDocument({ filePath: res.tempFilePath, showMenu: true });
-        } else {
-          wx.showToast({ title: "下载失败", icon: "none" });
-        }
-      },
-      fail: () => {
-        wx.hideLoading();
-        wx.showToast({ title: "下载失败", icon: "none" });
-      }
+    high.forEach((x) => {
+      x.saved = true;
+      x.raw.saved = true;
     });
+    catalog.save(all.map((x) => x.raw));
+    this._refreshList(all);
+    wx.showToast({ title: `已保存 ${high.length} 家高价值`, icon: "success" });
   }
 });

@@ -1,3 +1,9 @@
 page {
-  background: #f7f7f7;
+  /* 凯悦蓝主题:TDesign 组件读取这些品牌色变量 */
+  --td-brand-color: #1b3a5f;
+  --td-brand-color-active: #15304f;
+  --td-brand-color-light: #e9eef6;
+  --td-brand-color-focus: #e9eef6;
+  --td-brand-color-disabled: #a9b6c8;
+  background: #f4f2ef;
 }

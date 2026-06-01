@@ -4,10 +4,12 @@
 //        文件下载(/export)仍走 apiBase 公网域名 + wx.downloadFile（需配进 downloadFile 合法域名）。
 App({
   globalData: {
-    apiMode: "request", // "request" | "callContainer"
+    apiMode: "callContainer", // "request" | "callContainer"
     apiBase: "http://127.0.0.1:8000",
-    cloudEnv: "", // 云托管环境 ID（callContainer 模式）
-    cloudService: "" // 云托管服务名（callContainer 模式）
+    cloudEnv: "prod-d2g9fid9xb059f686", // 云托管环境 ID（callContainer 模式）
+    cloudService: "leadfinder", // 云托管服务名（callContainer 模式）
+    leads: [], // 跨页共享:已加载客户(含选中态),供群发页读取
+    jobId: "" // 当前搜索 job(用于下载全部 xlsx)
   },
   onLaunch() {
     if (this.globalData.apiMode === "callContainer" && wx.cloud) {

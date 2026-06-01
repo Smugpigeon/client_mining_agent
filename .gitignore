@@ -12,7 +12,10 @@ data/output/
 output/
 .env
 *.xlsx
+snapshot/*
+!snapshot/.gitkeep
 
 # Mini Program frontend (npm)
 node_modules/
 miniprogram/miniprogram_npm/
+miniprogram/project.private.config.json
