@@ -53,9 +53,12 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage]
 
 
-class ChatResponse(BaseModel):
-    reply: str
+class ChatStatus(BaseModel):
+    chat_id: str
+    status: str  # pending | running | done | error
+    reply: str = ""
     leads: list[Lead] = []
+    error: str | None = None
 
 
 class SearchRequest(BaseModel):
@@ -148,6 +151,7 @@ def create_app(
     snapshot_path = snapshot if snapshot is not None else os.environ.get("LEADFINDER_SNAPSHOT", "")
     jobs: dict[str, JobStatus] = {}
     campaigns: dict[str, CampaignStatus] = {}
+    chats: dict[str, ChatStatus] = {}
 
     def require_auth(authorization: str | None = Header(default=None)) -> None:
         if not app_auth.required:
@@ -286,18 +290,35 @@ def create_app(
             raise HTTPException(status_code=404, detail="campaign not found")
         return job
 
-    @app.post("/chat", response_model=ChatResponse, dependencies=[Depends(require_auth)])
-    def chat(request: ChatRequest) -> ChatResponse:
+    def run_chat_job(chat_id: str, request: ChatRequest) -> None:
+        job = chats[chat_id]
+        job.status = "running"
+        try:
+            messages: list[dict[str, str]] = [{"role": "system", "content": _SYSTEM_PROMPT}]
+            messages += [{"role": m.role, "content": m.content} for m in request.messages]
+            reply, leads = parse_assistant_reply(app_llm.chat(messages))
+            job.reply = reply
+            job.leads = leads
+            job.status = "done"
+        except Exception as exc:  # capture upstream failure; the client polls for it
+            job.status = "error"
+            job.error = f"对话失败：{exc}"
+
+    @app.post("/chat", response_model=ChatStatus, dependencies=[Depends(require_auth)])
+    def create_chat(request: ChatRequest, background: BackgroundTasks) -> ChatStatus:
         if not app_llm.configured:
             raise HTTPException(status_code=503, detail="对话未配置（请设置 LLM_API_KEY）")
-        messages: list[dict[str, str]] = [{"role": "system", "content": _SYSTEM_PROMPT}]
-        messages += [{"role": m.role, "content": m.content} for m in request.messages]
-        try:
-            raw = app_llm.chat(messages)
-        except Exception as exc:  # surface upstream failure, keep the server alive
-            raise HTTPException(status_code=502, detail=f"对话失败：{exc}") from exc
-        reply, leads = parse_assistant_reply(raw)
-        return ChatResponse(reply=reply, leads=leads)
+        chat_id = uuid.uuid4().hex
+        chats[chat_id] = ChatStatus(chat_id=chat_id, status="pending")
+        background.add_task(run_chat_job, chat_id, request)
+        return chats[chat_id]
+
+    @app.get("/chat/{chat_id}", response_model=ChatStatus, dependencies=[Depends(require_auth)])
+    def get_chat(chat_id: str) -> ChatStatus:
+        job = chats.get(chat_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="chat not found")
+        return job
 
     return app
 

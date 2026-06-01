@@ -14,8 +14,11 @@ from leadfinder.domain.models import Lead
 ChatFn = Callable[["LlmConfig", list[dict[str, str]]], str]
 
 _LEADS_BLOCK = re.compile(r"<leads>\s*(.*?)\s*</leads>", re.DOTALL)
+_THINK_BLOCK = re.compile(r"<think>.*?</think>\s*", re.DOTALL)
 _LEAD_TYPES = {
     "distributor": LeadType.DISTRIBUTOR,
+    "importer": LeadType.DISTRIBUTOR,
+    "wholesaler": LeadType.DISTRIBUTOR,
     "retailer": LeadType.RETAILER,
     "manufacturer": LeadType.MANUFACTURER,
 }
@@ -41,10 +44,14 @@ def llm_config_from_env() -> LlmConfig:
 
 
 def _chat_via_http(config: LlmConfig, messages: list[dict[str, str]]) -> str:
+    body: dict[str, object] = {"model": config.model, "messages": messages, "temperature": 0.4}
+    if "minimax" in config.model.lower():
+        # MiniMax-M3 默认深度思考(~50s/条);关掉直接作答,快约 4 倍
+        body["thinking"] = {"type": "disabled"}
     response = httpx.post(
         f"{config.base_url}/chat/completions",
         headers={"Authorization": f"Bearer {config.api_key}"},
-        json={"model": config.model, "messages": messages, "temperature": 0.4},
+        json=body,
         timeout=60.0,
     )
     response.raise_for_status()
@@ -93,6 +100,7 @@ def _dict_to_lead(item: object) -> Lead | None:
 
 def parse_assistant_reply(raw: str) -> tuple[str, list[Lead]]:
     """Split an assistant reply into prose + any <leads>JSON</leads> block it carries."""
+    raw = _THINK_BLOCK.sub("", raw)  # 去掉推理模型(如 MiniMax-M3)输出的 <think> 思考块
     match = _LEADS_BLOCK.search(raw)
     if not match:
         return raw.strip(), []

@@ -4,7 +4,7 @@
 //        文件下载(/export)仍走 apiBase 公网域名 + wx.downloadFile（需配进 downloadFile 合法域名）。
 App({
   globalData: {
-    apiMode: "callContainer", // "request" | "callContainer"
+    apiMode: "callContainer", // 云端(手机/体验版);本地联调时临时改 "request"
     apiBase: "http://127.0.0.1:8000",
     cloudEnv: "prod-d2g9fid9xb059f686", // 云托管环境 ID（callContainer 模式）
     cloudService: "leadfinder", // 云托管服务名（callContainer 模式）

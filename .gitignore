@@ -12,6 +12,7 @@ data/output/
 output/
 .env
 *.xlsx
+nohup.out
 snapshot/*
 !snapshot/.gitkeep
 

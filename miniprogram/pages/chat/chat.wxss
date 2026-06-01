@@ -7,6 +7,7 @@
 }
 .msgs {
   flex: 1;
+  min-height: 0; /* 关键:让 flex 子项可收缩,scroll-view 才在内部滚动而非撑高页面 */
   padding: 24rpx 28rpx;
   box-sizing: border-box;
 }
@@ -119,9 +120,28 @@
   flex-shrink: 0;
   font-size: 24rpx;
   color: #1b3a5f;
+  background: #fff;
   border: 1rpx solid #1b3a5f;
   border-radius: 30rpx;
   padding: 10rpx 20rpx;
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+.ld-save.done {
+  background: #1b3a5f;
+  color: #fff;
+  border-color: #1b3a5f;
+  animation: savedPop 0.32s ease;
+}
+@keyframes savedPop {
+  0% {
+    transform: scale(0.86);
+  }
+  55% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 .saveall {
   text-align: center;

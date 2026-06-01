@@ -1,4 +1,4 @@
-<view class="page">
+<view class="page" style="{{pageStyle}}">
   <scroll-view class="msgs" scroll-y scroll-into-view="{{scrollId}}" scroll-with-animation>
     <view class="intro" wx:if="{{!messages.length}}">
       <image class="intro-logo" src="/assets/logo.svg" mode="aspectFit" />
@@ -26,7 +26,14 @@
             <view class="ld-sub">{{ld.country || '—'}} · {{ld.typeCn}}</view>
             <view wx:if="{{ld.website}}" class="ld-web">{{ld.website}}</view>
           </view>
-          <view class="ld-save" data-m="{{m}}" data-i="{{i}}" bindtap="onSaveLead">＋ 存客源</view>
+          <view
+            class="ld-save {{ld.inLib ? 'done' : ''}}"
+            data-m="{{m}}"
+            data-i="{{i}}"
+            bindtap="onSaveLead"
+          >
+            {{ld.inLib ? '✓ 已保存' : '＋ 存客源'}}
+          </view>
         </view>
         <view class="saveall" data-m="{{m}}" bindtap="onSaveAll">全部存入客源（{{item.leads.length}}）</view>
       </view>

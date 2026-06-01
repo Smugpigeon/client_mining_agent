@@ -147,15 +147,18 @@ def test_chat_returns_reply_and_parsed_leads() -> None:
     client = TestClient(
         create_app(llm_client=LlmClient(config=LlmConfig(api_key="x"), chat_fn=_fake_chat))
     )
-    resp = client.post(
+    created = client.post(
         "/chat", json={"messages": [{"role": "user", "content": "找尼日利亚进口商"}]}
     )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert "尼日利亚" in body["reply"]
-    assert "<leads>" not in body["reply"]  # JSON block stripped from prose
-    assert body["leads"][0]["company_name"] == "Lagos Beauty Imports"
-    assert body["leads"][0]["source"] == "chat"
+    assert created.status_code == 200
+    cid = created.json()["chat_id"]
+
+    status = client.get(f"/chat/{cid}").json()
+    assert status["status"] == "done"
+    assert "尼日利亚" in status["reply"]
+    assert "<leads>" not in status["reply"]  # JSON block stripped from prose
+    assert status["leads"][0]["company_name"] == "Lagos Beauty Imports"
+    assert status["leads"][0]["source"] == "chat"
 
 
 def test_chat_not_configured_is_503() -> None:

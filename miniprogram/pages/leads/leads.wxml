@@ -30,6 +30,10 @@
     <t-tab-panel label="有邮箱" value="email" />
   </t-tabs>
 
+  <view class="mail-saved" wx:if="{{filter === 'saved' && savedCount}}" bind:tap="onMailSaved">
+    ✉ 群发这 {{savedCount}} 家已保存客户
+  </view>
+
   <view class="list">
     <view
       class="card {{item.sel ? 'sel' : ''}} {{item.isHigh ? 'high' : ''}}"

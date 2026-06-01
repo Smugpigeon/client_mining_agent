@@ -42,7 +42,7 @@ function decorate(lead, i) {
 Page({
   data: {
     all: [], view: [], loading: false, filter: "all",
-    selectedCount: 0, allSelectedSaved: false, allViewSelected: false
+    selectedCount: 0, savedCount: 0, allSelectedSaved: false, allViewSelected: false
   },
 
   onShow() {
@@ -144,6 +144,7 @@ Page({
       view: view,
       loading: false,
       selectedCount: count,
+      savedCount: all.filter((x) => x.saved).length,
       allSelectedSaved: this._allSelSaved(all),
       allViewSelected: view.length > 0 && view.every((x) => x.sel)
     });
@@ -224,5 +225,24 @@ Page({
     catalog.save(all.map((x) => x.raw));
     this._refreshList(all);
     wx.showToast({ title: `已保存 ${high.length} 家高价值`, icon: "success" });
+  },
+
+  // 一键群发给所有已保存客户:选中已保存 → 跳「群发」
+  onMailSaved() {
+    const all = this.data.all;
+    const saved = all.filter((x) => x.saved);
+    if (!saved.length) {
+      wx.showToast({ title: "还没有已保存客户", icon: "none" });
+      return;
+    }
+    if (!saved.some((x) => x.hasEmail)) {
+      wx.showToast({ title: "已保存客户都没有邮箱", icon: "none" });
+      return;
+    }
+    all.forEach((x) => {
+      x.sel = x.saved;
+    });
+    this._refreshList(all);
+    wx.switchTab({ url: "/pages/campaign/campaign" });
   }
 });

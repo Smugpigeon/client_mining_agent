@@ -44,6 +44,17 @@
   color: #9a948b;
   text-align: center;
 }
+.mail-saved {
+  margin: 4rpx 28rpx 16rpx;
+  background: #1b3a5f;
+  color: #fff;
+  text-align: center;
+  font-size: 27rpx;
+  font-weight: 500;
+  padding: 22rpx;
+  border-radius: 14rpx;
+  box-shadow: 0 4rpx 14rpx rgba(27, 58, 95, 0.22);
+}
 .saved-flag {
   margin-left: 8rpx;
   color: #e6a23c;
