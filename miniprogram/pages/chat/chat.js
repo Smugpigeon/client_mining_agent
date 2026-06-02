@@ -1,5 +1,6 @@
 const api = require("../../utils/api");
 const catalog = require("../../utils/catalog");
+const userProfile = require("../../utils/profile");
 
 const TYPE = { distributor: "经销/进口", retailer: "零售", manufacturer: "品牌", unknown: "类型待定" };
 
@@ -51,7 +52,7 @@ Page({
 
     const history = messages.map((m) => ({ role: m.role, content: m.content }));
     api
-      .chatSend(history)
+      .chatSend(history, userProfile.load())
       .then((c) => this._pollChat(c.chat_id))
       .catch((err) => this._chatFail(err));
   },

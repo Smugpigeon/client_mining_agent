@@ -1,0 +1,30 @@
+<view class="page">
+  <view class="head">
+    <image class="mini-logo" src="/assets/logo.svg" mode="aspectFit" />
+    <view class="title">我的</view>
+  </view>
+
+  <view class="intro">填好你的身份,AI 找客户、写开发信都会「为你」定制。</view>
+
+  <view class="card">
+    <view class="field-label">公司 / 品牌名</view>
+    <t-input placeholder="如：云想生物科技" value="{{company}}" bind:change="onCompany" />
+    <view class="field-label">主营 / 你卖什么（一句话）</view>
+    <t-input placeholder="如：医用级玻尿酸面膜、护肤品 OEM" value="{{products_desc}}" bind:change="onProducts" />
+    <view class="field-label">目标市场</view>
+    <t-input placeholder="如：尼日利亚、西非、中东" value="{{markets}}" bind:change="onMarkets" />
+    <view class="field-label">邮件落款名</view>
+    <t-input placeholder="如：Tom / 云想外贸部" value="{{signer}}" bind:change="onSigner" />
+    <view class="field-label">AI 写信语言</view>
+    <view class="seg">
+      <view class="seg-item {{language === '英文' ? 'on' : ''}}" data-v="英文" bind:tap="onLanguage">英文</view>
+      <view class="seg-item {{language === '中文' ? 'on' : ''}}" data-v="中文" bind:tap="onLanguage">中文</view>
+    </view>
+  </view>
+
+  <view class="btn-wrap">
+    <t-button block theme="primary" bind:tap="onSave">保存</t-button>
+  </view>
+
+  <view class="tip">这些信息只存在本机,用于让 agent 更懂你的生意——找客户会盯你的目标市场、写信会用你的公司和语言。不会上传作他用。</view>
+</view>

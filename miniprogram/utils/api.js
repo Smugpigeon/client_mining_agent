@@ -36,7 +36,7 @@ module.exports = {
   getJob: (jobId) => request("GET", "/jobs/" + jobId, {}),
   startCampaign: (payload) => request("POST", "/campaign", payload),
   getCampaign: (id) => request("GET", "/campaign/" + id, {}),
-  chatSend: (messages) => request("POST", "/chat", { messages: messages }),
+  chatSend: (messages, profile) => request("POST", "/chat", { messages: messages, profile: profile }),
   getChat: (id) => request("GET", "/chat/" + id, {}),
   // 整个 job 的服务端文件下载 URL（xlsx/csv）；用公网域名 + wx.downloadFile 取文件。
   exportUrl: (jobId, fmt) =>

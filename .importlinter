@@ -12,6 +12,7 @@ layers =
     leadfinder.stages
     leadfinder.sources
     leadfinder.infra
+    leadfinder.skills
     leadfinder.domain
 
 [importlinter:contract:independence]

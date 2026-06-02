@@ -25,6 +25,12 @@ Component({
         text: "群发",
         icon: "/assets/tab/mail.svg",
         iconOn: "/assets/tab/mail-on.svg"
+      },
+      {
+        path: "/pages/profile/profile",
+        text: "我的",
+        icon: "/assets/tab/me.svg",
+        iconOn: "/assets/tab/me-on.svg"
       }
     ]
   },

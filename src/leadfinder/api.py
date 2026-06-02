@@ -13,19 +13,25 @@ from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from leadfinder import outreach, pipeline
+from leadfinder import outreach, pipeline, skills
 from leadfinder.domain.models import (
     ChatMessage,
     Lead,
     ProductBlock,
     Recipient,
     SearchParams,
+    UserProfile,
 )
 from leadfinder.domain.protocols import LeadSource, Stage, Writer
 from leadfinder.infra import wx_auth
 from leadfinder.infra.email_send import SmtpConfig, SmtpSender, smtp_config_from_env
 from leadfinder.infra.http import Fetcher
-from leadfinder.infra.llm import LlmClient, llm_config_from_env, parse_assistant_reply
+from leadfinder.infra.llm import (
+    LlmClient,
+    generate_outreach_email,
+    llm_config_from_env,
+    parse_assistant_reply,
+)
 from leadfinder.infra.writers import CsvWriter, ExcelWriter
 from leadfinder.sources.beauty_west_africa import BeautyWestAfricaSource
 from leadfinder.stages.classify import Classifier
@@ -35,22 +41,9 @@ from leadfinder.stages.verify import VerifyStage
 
 _CACHE_DIR = Path("cache")
 
-_SYSTEM_PROMPT = (
-    "你是「客源搜索」小程序里的海外客户开发助手，服务于一家中国护肤品出口商。"
-    "任务：帮用户开发海外护肤品**买家**（进口商 / 经销商 / 批发商 / 连锁零售），"
-    "重点市场是非洲、中东、南亚。请用简体中文，专业、简洁。\n"
-    "规则：\n"
-    "1) 当用户让你「找客户 / 找买家 / 找经销商」时，列出真实存在的候选公司，"
-    "并在回复**末尾**附一段 JSON，用 <leads></leads> 包裹，数组里每个对象含字段："
-    "company_name、country、lead_type(distributor/retailer/manufacturer)、website(若知道)、"
-    "business、profile(一句话简介)。不要编造邮箱或电话，不确定的字段留空或省略。\n"
-    "2) 普通问题正常对话，不要输出 <leads>。\n"
-    "3) 提醒用户：候选公司与联系方式需自行核实，以对方官网 / 平台为准。"
-)
-
-
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
+    profile: UserProfile | None = None
 
 
 class ChatStatus(BaseModel):
@@ -90,6 +83,8 @@ class CampaignRequest(BaseModel):
     recipients: list[Recipient]
     from_name: str = ""
     products: list[ProductBlock] = []
+    personalize: bool = False  # True → AI 给每个客户单独写信
+    profile: UserProfile | None = None
     dry_run: bool = True
     delay: float = 0.8
 
@@ -242,6 +237,20 @@ def create_app(
         job.status = "running"
         try:
             sender = SmtpSender(config=app_smtp)
+            personalizer: outreach.Personalizer | None = None
+            if request.personalize and app_llm.configured:
+                outreach_system = skills.render_outreach_system(request.profile)
+
+                def _personalize(recipient: Recipient) -> tuple[str, str]:
+                    return generate_outreach_email(
+                        app_llm,
+                        system_prompt=outreach_system,
+                        recipient=recipient,
+                        brief=request.body,
+                        products=request.products,
+                    )
+
+                personalizer = _personalize
             for result in outreach.run_campaign(
                 sender=sender,
                 recipients=request.recipients,
@@ -249,6 +258,7 @@ def create_app(
                 body=request.body,
                 from_name=request.from_name,
                 products=request.products,
+                personalizer=personalizer,
                 dry_run=request.dry_run,
                 delay=request.delay,
             ):
@@ -270,6 +280,10 @@ def create_app(
             raise HTTPException(status_code=400, detail="recipients 不能为空")
         if len(request.recipients) > 200:
             raise HTTPException(status_code=400, detail="单次最多 200 个收件人")
+        if request.personalize and len(request.recipients) > 50:
+            raise HTTPException(status_code=400, detail="AI 个性化较慢较贵，单次最多 50 个收件人")
+        if request.personalize and not app_llm.configured:
+            raise HTTPException(status_code=503, detail="AI 个性化需先配置 LLM（LLM_API_KEY）")
         if not request.dry_run and not app_smtp.configured:
             raise HTTPException(status_code=503, detail="SMTP 未配置，无法真实发送")
         campaign_id = uuid.uuid4().hex
@@ -294,7 +308,8 @@ def create_app(
         job = chats[chat_id]
         job.status = "running"
         try:
-            messages: list[dict[str, str]] = [{"role": "system", "content": _SYSTEM_PROMPT}]
+            system = skills.render_lead_finder(request.profile)
+            messages: list[dict[str, str]] = [{"role": "system", "content": system}]
             messages += [{"role": m.role, "content": m.content} for m in request.messages]
             reply, leads = parse_assistant_reply(app_llm.chat(messages))
             job.reply = reply

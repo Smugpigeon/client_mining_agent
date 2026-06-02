@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import time
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from html import escape
 
 from leadfinder.domain.models import OutboundEmail, ProductBlock, Recipient, SendResult
@@ -10,15 +10,17 @@ from leadfinder.domain.protocols import EmailSender
 
 _PLACEHOLDER = re.compile(r"\{\{\s*(\w+)\s*\}\}")
 
+# recipient -> (subject, body); used by AI personalization to write a per-lead email
+Personalizer = Callable[[Recipient], tuple[str, str]]
+
 
 def render(template: str, recipient: Recipient) -> str:
-    """Replace {{company_name}} / {{country}} / {{email}} merge fields."""
-    values = {
-        "company_name": recipient.company_name or "贵公司",
-        "country": recipient.country or "",
-        "email": recipient.email,
-    }
-    return _PLACEHOLDER.sub(lambda m: values.get(m.group(1), m.group(0)), template)
+    """填充 「公司名」/「国家」 占位(也兼容旧式 {{company_name}})。"""
+    company = recipient.company_name or "贵公司"
+    country = recipient.country or ""
+    values = {"company_name": company, "country": country, "email": recipient.email}
+    text = _PLACEHOLDER.sub(lambda m: values.get(m.group(1), m.group(0)), template)
+    return text.replace("「公司名」", company).replace("「国家」", country)
 
 
 def _products_text(products: Sequence[ProductBlock]) -> str:
@@ -58,7 +60,10 @@ def _products_html(products: Sequence[ProductBlock]) -> str:
 
 
 def _footer_text(from_name: str) -> str:
-    return f"\n\n— {from_name or '我们'}\n如不希望再收到此类邮件，请直接回复「退订」。"
+    return (
+        f"\n\n— {from_name or '我们'}\n"
+        "如不希望再收到此类邮件，请直接回复「退订」。To unsubscribe, reply STOP."
+    )
 
 
 def build_email(
@@ -78,7 +83,7 @@ def build_email(
         f'<div style="white-space:pre-wrap;">{escape(message)}</div>'
         f"{_products_html(products)}"
         f'<div style="margin-top:22px;color:#999;font-size:12px;">— {escape(from_name or "我们")}'
-        "<br>如不希望再收到此类邮件，请直接回复「退订」。</div></div>"
+        "<br>如不希望再收到此类邮件，请回复「退订」。To unsubscribe, reply STOP.</div></div>"
     )
     return OutboundEmail(
         to=recipient.email, subject=render(subject, recipient), body=text, html=html
@@ -93,10 +98,15 @@ def run_campaign(
     body: str,
     from_name: str = "",
     products: Sequence[ProductBlock] = (),
+    personalizer: Personalizer | None = None,
     dry_run: bool = True,
     delay: float = 0.8,
 ) -> Iterator[SendResult]:
-    """Render and (unless dry_run) send to each recipient. Dedups, skips invalid, rate-limits."""
+    """Render and (unless dry_run) send to each recipient. Dedups, skips invalid, rate-limits.
+
+    With `personalizer`, the subject/body are written per recipient (AI mode) instead of the
+    shared template.
+    """
     seen: set[str] = set()
     for recipient in recipients:
         addr = recipient.email.strip().lower()
@@ -104,7 +114,8 @@ def run_campaign(
             yield SendResult(to=recipient.email, ok=False, error="无效或重复邮箱，已跳过")
             continue
         seen.add(addr)
-        email = build_email(subject, body, recipient, from_name, products)
+        subj, bod = personalizer(recipient) if personalizer is not None else (subject, body)
+        email = build_email(subj, bod, recipient, from_name, products)
         if dry_run:
             yield SendResult(to=email.to, ok=True, preview=f"主题：{email.subject}\n\n{email.body}")
             continue

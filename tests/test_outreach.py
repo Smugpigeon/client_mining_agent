@@ -16,6 +16,8 @@ class _FakeSender:
 def test_render_merges_fields() -> None:
     r = Recipient(email="a@b.com", company_name="Acme", country="Nigeria")
     assert render("你好 {{company_name}}（{{country}}）", r) == "你好 Acme（Nigeria）"
+    # 友好中文写法也要替换
+    assert render("你好「公司名」（「国家」）", r) == "你好Acme（Nigeria）"
 
 
 def test_build_email_appends_unsubscribe_footer() -> None:
@@ -65,3 +67,22 @@ def test_products_render_in_text_and_html() -> None:
     assert "玻尿酸面膜" in email.body and "医用级" in email.body
     # html part is a styled card with name + price
     assert "玻尿酸面膜" in email.html and "<table" in email.html and "US$0.9" in email.html
+
+
+def test_personalizer_overrides_template() -> None:
+    sender = _FakeSender()
+    results = list(
+        run_campaign(
+            sender=sender,
+            recipients=[Recipient(email="a@b.com", company_name="Acme")],
+            subject="模板主题",
+            body="模板正文",
+            personalizer=lambda r: (f"专属 {r.company_name}", "AI 写的正文"),
+            dry_run=True,
+            delay=0,
+        )
+    )
+    assert results[0].preview is not None
+    assert "专属 Acme" in results[0].preview
+    assert "AI 写的正文" in results[0].preview
+    assert "模板正文" not in results[0].preview

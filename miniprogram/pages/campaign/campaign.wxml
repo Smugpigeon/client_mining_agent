@@ -4,67 +4,98 @@
     <view class="title">群发邮件</view>
   </view>
 
-  <view wx:if="{{!count}}" class="empty-wrap">
-    <t-empty description="先到「客源」页勾选客户，再回来群发" />
+  <!-- 群发对象:直接在这里勾选客户 -->
+  <view class="card picker">
+    <view class="picker-head">
+      <view class="picker-title">群发对象 · 已选 <text class="num">{{recipCount}}</text> 家</view>
+      <view wx:if="{{customers.length}}" class="pick-all" bind:tap="onSelectAllCustomers">
+        {{allCustSel ? '取消全选' : '全选'}}
+      </view>
+    </view>
+    <scroll-view wx:if="{{customers.length}}" scroll-y class="cust-list">
+      <view
+        class="crow"
+        wx:for="{{customers}}"
+        wx:key="email"
+        data-i="{{index}}"
+        bind:tap="onToggleCustomer"
+      >
+        <view class="cinfo">
+          <view class="cname">{{item.name}}</view>
+          <view class="cmail">{{item.email}}</view>
+        </view>
+        <view class="cck {{item.sel ? 'on' : ''}}">{{item.sel ? '✓' : ''}}</view>
+      </view>
+    </scroll-view>
+    <view wx:else class="cust-empty">客源里还没有带邮箱的客户。去「客源」找一些,或用「对话」让 AI 找。</view>
   </view>
 
-  <block wx:if="{{count}}">
-    <view class="hint">
-      已选 <text class="num">{{count}}</text> 家 · 其中 <text class="num">{{withEmail}}</text> 个有邮箱可发
+  <view class="ai-row">
+    <view class="ai-label">✨ AI 个性化<text class="ai-sub">给每个客户单独写信</text></view>
+    <view class="ai-switch {{personalize ? 'on' : ''}}" bind:tap="onTogglePersonalize">
+      <view class="ai-knob"></view>
     </view>
+  </view>
+  <view class="ai-tip" wx:if="{{personalize}}">
+    AI 会按每家客户的公司/国家/主营/官网逐个写专属开发信。较慢较贵,单次≤50 家;预览只出 1 封样本。
+  </view>
 
-    <view class="card">
-      <view class="field-label">主题</view>
-      <t-input placeholder="你好 {{company_name}}" value="{{subject}}" bind:change="onSubject" />
-      <view class="field-label">正文（可用 {{company_name}}、{{country}} 占位）</view>
-      <t-textarea
-        placeholder="我们是中国护肤品出口商，想与{{company_name}}合作…"
-        value="{{body}}"
-        bind:change="onBody"
-        autosize
-        maxlength="600"
-      />
-      <view class="field-label">落款名</view>
-      <t-input placeholder="你的名字 / 公司" value="{{fromName}}" bind:change="onFrom" />
+  <view class="card">
+    <view class="field-label">{{subjLabel}}</view>
+    <t-input placeholder="{{subjPh}}" value="{{subject}}" bind:change="onSubject" />
+    <view class="field-label">{{bodyLabel}}</view>
+    <t-textarea
+      placeholder="{{bodyPh}}"
+      value="{{body}}"
+      bind:change="onBody"
+      autosize
+      maxlength="600"
+    />
+    <view class="varhint" wx:if="{{!personalize}}">
+      <text class="varhint-txt">点一下插入，发送时自动换成各客户的信息：</text>
+      <view class="varchip" data-v="「公司名」" bind:tap="onInsertVar">＋ 公司名</view>
+      <view class="varchip" data-v="「国家」" bind:tap="onInsertVar">＋ 国家</view>
     </view>
+    <view class="field-label">落款名</view>
+    <t-input placeholder="你的名字 / 公司" value="{{fromName}}" bind:change="onFrom" />
+  </view>
 
-    <view class="card prod-card" wx:if="{{products.length}}">
-      <view class="field-label">附带产品介绍（勾选后自动排版进邮件）</view>
-      <view
-        class="prow {{item.sel ? 'on' : ''}}"
-        wx:for="{{products}}"
-        wx:key="id"
-        data-i="{{index}}"
-        bind:tap="onToggleProduct"
-      >
-        <view class="prow-name">{{item.name}}</view>
-        <view class="check {{item.sel ? 'on' : ''}}">{{item.sel ? '✓' : ''}}</view>
+  <view class="card prod-card" wx:if="{{products.length}}">
+    <view class="field-label">附带产品介绍（勾选后自动排版进邮件）</view>
+    <view
+      class="prow {{item.sel ? 'on' : ''}}"
+      wx:for="{{products}}"
+      wx:key="id"
+      data-i="{{index}}"
+      bind:tap="onToggleProduct"
+    >
+      <view class="prow-name">{{item.name}}</view>
+      <view class="check {{item.sel ? 'on' : ''}}">{{item.sel ? '✓' : ''}}</view>
+    </view>
+  </view>
+  <view class="prod-tip" wx:else>想随邮件附产品介绍？去底部「产品」页添加，这里就能勾选。</view>
+
+  <view class="tip">先「预览」确认效果再「发送」。系统会自动去重、跳过无邮箱、加退订落款。真发需后端配好 SMTP。</view>
+
+  <view class="btn-row">
+    <t-button block theme="default" loading="{{busy && dry}}" bind:tap="onPreview">{{personalize ? '预览样本' : '预览'}}</t-button>
+    <t-button block theme="primary" loading="{{busy && !dry}}" bind:tap="onSend">发送 {{recipCount}} 封</t-button>
+  </view>
+
+  <view class="export-row">
+    <t-button size="small" variant="text" bind:tap="onExportCsv">导出所选 CSV</t-button>
+    <t-button size="small" variant="text" bind:tap="onExportAll">下载全部 xlsx</t-button>
+  </view>
+
+  <view class="results" wx:if="{{results.length}}">
+    <view class="results-title">{{dry ? '预览' : '发送结果'}}（{{results.length}}）</view>
+    <view class="rcard" wx:for="{{results}}" wx:key="index">
+      <view class="rtop">
+        <text class="rto">{{item.to}}</text>
+        <text class="badge {{item.ok ? 'ok' : 'bad'}}">{{item.ok ? '✓' : '✗'}}</text>
       </view>
+      <view wx:if="{{item.preview}}" class="rprev">{{item.preview}}</view>
+      <view wx:if="{{item.error}}" class="rerr">{{item.error}}</view>
     </view>
-    <view class="prod-tip" wx:else>想随邮件附产品介绍？去底部「产品」页添加，这里就能勾选。</view>
-
-    <view class="tip">先「预览」确认效果再「发送」。系统会自动去重、跳过无邮箱、加退订落款。真发需后端配好 SMTP。</view>
-
-    <view class="btn-row">
-      <t-button block theme="default" loading="{{busy && dry}}" bind:tap="onPreview">预览</t-button>
-      <t-button block theme="primary" loading="{{busy && !dry}}" bind:tap="onSend">发送 {{withEmail}} 封</t-button>
-    </view>
-
-    <view class="export-row">
-      <t-button size="small" variant="text" bind:tap="onExportCsv">导出所选 CSV</t-button>
-      <t-button size="small" variant="text" bind:tap="onExportAll">下载全部 xlsx</t-button>
-    </view>
-
-    <view class="results" wx:if="{{results.length}}">
-      <view class="results-title">{{dry ? '预览' : '发送结果'}}（{{results.length}}）</view>
-      <view class="rcard" wx:for="{{results}}" wx:key="index">
-        <view class="rtop">
-          <text class="rto">{{item.to}}</text>
-          <text class="badge {{item.ok ? 'ok' : 'bad'}}">{{item.ok ? '✓' : '✗'}}</text>
-        </view>
-        <view wx:if="{{item.preview}}" class="rprev">{{item.preview}}</view>
-        <view wx:if="{{item.error}}" class="rerr">{{item.error}}</view>
-      </view>
-    </view>
-  </block>
+  </view>
 </view>

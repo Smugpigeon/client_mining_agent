@@ -3,7 +3,8 @@
     "pages/leads/leads",
     "pages/chat/chat",
     "pages/products/products",
-    "pages/campaign/campaign"
+    "pages/campaign/campaign",
+    "pages/profile/profile"
   ],
   "window": {
     "navigationBarTitleText": "客源搜索",
@@ -21,7 +22,8 @@
       { "pagePath": "pages/leads/leads", "text": "客源" },
       { "pagePath": "pages/chat/chat", "text": "对话" },
       { "pagePath": "pages/products/products", "text": "产品" },
-      { "pagePath": "pages/campaign/campaign", "text": "群发" }
+      { "pagePath": "pages/campaign/campaign", "text": "群发" },
+      { "pagePath": "pages/profile/profile", "text": "我的" }
     ]
   },
   "style": "v2"

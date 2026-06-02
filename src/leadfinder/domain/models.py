@@ -64,11 +64,23 @@ class Lead(BaseModel):
 
 
 class Recipient(BaseModel):
-    """One bulk-email recipient, with merge fields for personalization."""
+    """One bulk-email recipient, with merge fields + context for AI personalization."""
 
     email: str
     company_name: str = ""
     country: str = ""
+    business: str = ""  # 主营/品类,供 AI 个性化参考
+    website: str = ""
+
+
+class UserProfile(BaseModel):
+    """The mini-program user's own identity — feeds the agent skill + email signature."""
+
+    company: str = ""  # 我方公司/品牌
+    products_desc: str = ""  # 主营/卖什么(一句话)
+    markets: str = ""  # 目标市场
+    signer: str = ""  # 邮件落款名
+    language: str = "英文"  # AI 写信语言偏好
 
 
 class ProductBlock(BaseModel):

@@ -3,13 +3,13 @@ from __future__ import annotations
 import json
 import os
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 import httpx
 
 from leadfinder.domain.enums import LeadType, Priority
-from leadfinder.domain.models import Lead
+from leadfinder.domain.models import Lead, ProductBlock, Recipient
 
 ChatFn = Callable[["LlmConfig", list[dict[str, str]]], str]
 
@@ -116,3 +116,47 @@ def parse_assistant_reply(raw: str) -> tuple[str, list[Lead]]:
             if lead is not None:
                 leads.append(lead)
     return reply or "已为你整理出以下潜在客户：", leads
+
+
+def _extract_json_obj(raw: str) -> dict[str, object]:
+    """Pull the first {...} JSON object out of an LLM reply (tolerates <think> + prose)."""
+    cleaned = _THINK_BLOCK.sub("", raw)
+    match = re.search(r"\{.*\}", cleaned, re.DOTALL)
+    if not match:
+        return {}
+    try:
+        obj = json.loads(match.group(0))
+    except json.JSONDecodeError:
+        return {}
+    return obj if isinstance(obj, dict) else {}
+
+
+def generate_outreach_email(
+    client: LlmClient,
+    *,
+    system_prompt: str,
+    recipient: Recipient,
+    brief: str,
+    products: Sequence[ProductBlock] = (),
+) -> tuple[str, str]:
+    """AI-write a personalized outreach (subject, body) for one recipient (mailgen-style).
+
+    `system_prompt` is the externalized outreach skill, already rendered with the user profile.
+    """
+    product_hint = "、".join(p.name for p in products) or "护肤品"
+    user = (
+        f"客户公司:{recipient.company_name};国家:{recipient.country or '未知'};"
+        f"主营:{recipient.business or '护肤/美妆相关'};官网:{recipient.website or '未知'}。"
+        f"写信意图:{brief or '建立合作、推介产品'};主推产品:{product_hint}。"
+    )
+    raw = client.chat(
+        [{"role": "system", "content": system_prompt}, {"role": "user", "content": user}]
+    )
+    obj = _extract_json_obj(raw)
+    subject = str(obj.get("subject") or "").strip()
+    body = str(obj.get("body") or "").strip()
+    if not body:
+        body = _THINK_BLOCK.sub("", raw).strip()
+    if not subject:
+        subject = f"Partnership inquiry — {recipient.company_name}"
+    return subject, body
